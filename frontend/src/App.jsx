@@ -1,26 +1,3 @@
-import { useState } from 'react';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import CompareView from './components/CompareView';
-import DeFiPanel from './components/DeFiPanel';
-import WhaleTable from './components/WhaleTable';
-
-export default function App() {
-  const [activePage, setActivePage] = useState('dashboard');
-
-  const pages = {
-    dashboard: <Dashboard />,
-    defi: <DeFiPanel />,
-    whale: <WhaleTable />,
-    compare: <CompareView />,
-  };
-
-  return (
-    <div className="flex h-screen bg-gray-950 text-gray-100 overflow-hidden">
-      <Sidebar activePage={activePage} onNavigate={setActivePage} />
-      <main className="flex-1 overflow-auto">
-        {pages[activePage] || <Dashboard />}
-      </main>
-    </div>
-  );
-}
+import{useState}from'react';import Navbar from'./components/Navbar';import Dashboard from'./components/Dashboard';import Markets from'./pages/Markets';import Workbench from'./pages/Workbench';import Events from'./pages/Events';import Transcripts from'./pages/Transcripts';
+export default function App(){const[page,setPage]=useState('dashboard');const pages={dashboard:<Dashboard/>,markets:<Markets/>,workbench:<Workbench/>,events:<Events/>,transcripts:<Transcripts/>};
+return(<div className="flex flex-col h-screen bg-[#060d1a] text-gray-100 overflow-hidden"><Navbar activePage={page} onNavigate={setPage}/><main className="flex-1 overflow-auto">{pages[page]||<Dashboard/>}</main></div>);}

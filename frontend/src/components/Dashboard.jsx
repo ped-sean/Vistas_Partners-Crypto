@@ -1,105 +1,15 @@
-import { useState, useEffect } from 'react';
-import CoinCard from './CoinCard';
-import PriceChart from './PriceChart';
-import MetricPanel from './MetricPanel';
-import Header from './Header';
-import { fetchCoins, fetchCoinDetail } from '../api/coins';
-import { TIME_RANGES } from '../constants/variables';
-
-// Mock data until backend is connected
-const MOCK_COINS = [
-  { coin_id:'bitcoin',  symbol:'BTC', name:'Bitcoin',  current_price:67420, price_change_24h_pct:2.41,  market_cap:1320000000000, total_volume:28000000000, market_cap_rank:1,  image_url:'https://assets.coingecko.com/coins/images/1/small/bitcoin.png' },
-  { coin_id:'ethereum', symbol:'ETH', name:'Ethereum', current_price:3521,  price_change_24h_pct:-0.87, market_cap:423000000000,  total_volume:14000000000, market_cap_rank:2,  image_url:'https://assets.coingecko.com/coins/images/279/small/ethereum.png' },
-  { coin_id:'solana',   symbol:'SOL', name:'Solana',   current_price:178,   price_change_24h_pct:5.12,  market_cap:82000000000,   total_volume:3200000000,  market_cap_rank:5,  image_url:'https://assets.coingecko.com/coins/images/4128/small/solana.png' },
-  { coin_id:'bnb',      symbol:'BNB', name:'BNB',      current_price:608,   price_change_24h_pct:1.33,  market_cap:88000000000,   total_volume:1800000000,  market_cap_rank:4,  image_url:'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png' },
-  { coin_id:'xrp',      symbol:'XRP', name:'XRP',      current_price:0.617, price_change_24h_pct:-1.22, market_cap:34000000000,   total_volume:1100000000,  market_cap_rank:6,  image_url:'https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png' },
-  { coin_id:'avalanche',symbol:'AVAX',name:'Avalanche',current_price:38.2,  price_change_24h_pct:3.77,  market_cap:15700000000,   total_volume:620000000,   market_cap_rank:11, image_url:'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png' },
-];
-
-function generateMockHistory(basePrice, days = 30) {
-  const points = [];
-  let price = basePrice * 0.85;
-  const now = Date.now();
-  for (let i = days; i >= 0; i--) {
-    price = price * (1 + (Math.random() - 0.47) * 0.04);
-    points.push({ t: now - i * 86400000, p: parseFloat(price.toFixed(2)) });
-  }
-  return points;
-}
-
-export default function Dashboard() {
-  const [coins, setCoins] = useState(MOCK_COINS);
-  const [selectedCoin, setSelectedCoin] = useState(MOCK_COINS[0]);
-  const [priceHistory, setPriceHistory] = useState([]);
-  const [timeRange, setTimeRange] = useState('30');
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setPriceHistory(generateMockHistory(selectedCoin.current_price, parseInt(timeRange)));
-  }, [selectedCoin, timeRange]);
-
-  const fmt = (n) => n >= 1e9 ? `$${(n/1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n/1e6).toFixed(0)}M` : `$${n.toLocaleString()}`;
-
-  return (
-    <div className="p-6 space-y-6">
-      <Header title="Market Overview" />
-
-      {/* Coin list */}
-      <div className="grid grid-cols-3 gap-3">
-        {coins.map(coin => (
-          <CoinCard
-            key={coin.coin_id}
-            coin={coin}
-            selected={selectedCoin.coin_id === coin.coin_id}
-            onClick={() => setSelectedCoin(coin)}
-          />
-        ))}
-      </div>
-
-      {/* Chart + metrics row */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-white font-semibold">{selectedCoin.name} Price</h2>
-              <p className="text-2xl font-bold text-white mt-1">
-                ${selectedCoin.current_price.toLocaleString()}
-                <span className={`text-sm ml-2 font-normal ${selectedCoin.price_change_24h_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {selectedCoin.price_change_24h_pct >= 0 ? '+' : ''}{selectedCoin.price_change_24h_pct.toFixed(2)}%
-                </span>
-              </p>
-            </div>
-            <div className="flex gap-1">
-              {TIME_RANGES.map(r => (
-                <button
-                  key={r.value}
-                  onClick={() => setTimeRange(r.value)}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    timeRange === r.value ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
-                >{r.label}</button>
-              ))}
-            </div>
-          </div>
-          <PriceChart data={priceHistory} color={selectedCoin.price_change_24h_pct >= 0 ? '#22c55e' : '#ef4444'} />
-        </div>
-
-        <div className="space-y-3">
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 mb-1">Market Cap</p>
-            <p className="text-lg font-bold text-white">{fmt(selectedCoin.market_cap)}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 mb-1">24h Volume</p>
-            <p className="text-lg font-bold text-white">{fmt(selectedCoin.total_volume)}</p>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <p className="text-xs text-gray-500 mb-1">CMC Rank</p>
-            <p className="text-lg font-bold text-white">#{selectedCoin.market_cap_rank}</p>
-          </div>
-          <MetricPanel />
-        </div>
-      </div>
-    </div>
-  );
-}
+import{useState,useEffect}from'react';import PriceChart from'./PriceChart';import MetricPanel from'./MetricPanel';import Watchlist from'./Watchlist';import{TIME_RANGES}from'../constants/variables';import{TrendingUp,TrendingDown}from'lucide-react';
+const C=[{coin_id:'bitcoin',symbol:'BTC',name:'Bitcoin',current_price:98620,price_change_24h_pct:2.4,market_cap:1940000000000,total_volume:42000000000,market_cap_rank:1,image_url:'https://assets.coingecko.com/coins/images/1/small/bitcoin.png'},{coin_id:'ethereum',symbol:'ETH',name:'Ethereum',current_price:3582,price_change_24h_pct:3.1,market_cap:430000000000,total_volume:18000000000,market_cap_rank:2,image_url:'https://assets.coingecko.com/coins/images/279/small/ethereum.png'},{coin_id:'solana',symbol:'SOL',name:'Solana',current_price:201.4,price_change_24h_pct:4.7,market_cap:95000000000,total_volume:4200000000,market_cap_rank:5,image_url:'https://assets.coingecko.com/coins/images/4128/small/solana.png'},{coin_id:'bnb',symbol:'BNB',name:'BNB',current_price:608,price_change_24h_pct:1.3,market_cap:88000000000,total_volume:1800000000,market_cap_rank:4,image_url:'https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png'},{coin_id:'avalanche',symbol:'AVAX',name:'Avalanche',current_price:38.9,price_change_24h_pct:-1.2,market_cap:15700000000,total_volume:620000000,market_cap_rank:11,image_url:'https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png'}];
+function gen(b,d=30){const a=[];let p=b*.85,n=Date.now();for(let i=d;i>=0;i--){p*=1+(Math.random()-.47)*.04;a.push({t:n-i*86400000,p:parseFloat(p.toFixed(2))})}return a;}
+const fmt=n=>n>=1e12?`$${(n/1e12).toFixed(2)}T`:n>=1e9?`$${(n/1e9).toFixed(1)}B`:`$${n.toLocaleString()}`;
+export default function Dashboard(){const[sel,setSel]=useState(C[0]);const[hist,setHist]=useState([]);const[rng,setRng]=useState('30');
+useEffect(()=>{setHist(gen(sel.current_price,parseInt(rng)))},[sel,rng]);
+const up=sel.price_change_24h_pct>=0;
+return(<div className="flex h-full">
+<div className="flex-1 p-6 space-y-5 overflow-auto">
+<div className="bg-[#0d1424] rounded-xl border border-gray-800 p-5">
+<div className="flex items-center justify-between mb-3"><div><p className="text-gray-500 text-xs uppercase tracking-wider mb-1">Total Crypto Market Cap</p><div className="flex items-center gap-3"><span className="text-3xl font-bold text-white">$3.85T</span><span className="flex items-center gap-1 text-emerald-400 text-sm font-medium"><TrendingUp size={14}/>+4.2% (7d)</span></div></div><div className="flex gap-1">{TIME_RANGES.map(r=><button key={r.value} onClick={()=>setRng(r.value)} className={`px-3 py-1 rounded text-xs font-medium transition-colors ${rng===r.value?'bg-emerald-500/20 text-emerald-400':'text-gray-500 hover:text-white'}`}>{r.label}</button>)}</div></div>
+<PriceChart data={gen(3850000,parseInt(rng))} color="#10b981"/></div>
+<div className="flex gap-2 overflow-x-auto pb-1">{C.map(coin=><button key={coin.coin_id} onClick={()=>setSel(coin)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border whitespace-nowrap transition-all shrink-0 ${sel.coin_id===coin.coin_id?'bg-emerald-500/15 border-emerald-500/40 text-white':'bg-[#0d1424] border-gray-800 text-gray-400 hover:border-gray-600 hover:text-white'}`}><img src={coin.image_url} alt={coin.symbol} className="w-5 h-5 rounded-full" onError={e=>e.target.style.display='none'}/><span className="font-semibold text-sm">{coin.symbol}</span><span className={`text-xs ${coin.price_change_24h_pct>=0?'text-emerald-400':'text-red-400'}`}>{coin.price_change_24h_pct>=0?'+':''}{coin.price_change_24h_pct}%</span></button>)}</div>
+<div className="bg-[#0d1424] rounded-xl border border-gray-800 p-5"><div className="flex items-start justify-between mb-4"><div><p className="text-gray-500 text-sm">{sel.name}</p><div className="flex items-baseline gap-2 mt-0.5"><span className="text-2xl font-bold text-white">${sel.current_price>=1?sel.current_price.toLocaleString():sel.current_price.toFixed(4)}</span><span className={`flex items-center gap-1 text-sm font-medium ${up?'text-emerald-400':'text-red-400'}`}>{up?<TrendingUp size={14}/>:<TrendingDown size={14}/>}{up?'+':''}{sel.price_change_24h_pct}% 24h</span></div></div><div className="grid grid-cols-2 gap-4 text-right"><div><p className="text-gray-500 text-xs">Market Cap</p><p className="text-white font-bold">{fmt(sel.market_cap)}</p></div><div><p className="text-gray-500 text-xs">Volume 24h</p><p className="text-white font-bold">{fmt(sel.total_volume)}</p></div></div></div><PriceChart data={hist} color={up?'#10b981':'#ef4444'}/></div></div>
+<div className="w-72 shrink-0 p-4 space-y-4 border-l border-gray-800 overflow-auto"><Watchlist onSelectCoin={c=>setSel(c)}/><MetricPanel/></div></div>);}
